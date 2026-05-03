@@ -5,6 +5,7 @@ import SummaryBar from './components/SummaryBar';
 import MainContent from './components/MainContent';
 import NewsTicker from './components/NewsTicker';
 import Footer from './components/Footer';
+import MobileWarning from './components/MobileWarning';
 
 function App() {
   const [activeSymbol, setActiveSymbol] = useState('BTCUSDT');
@@ -33,28 +34,31 @@ function App() {
   }, []);
 
   return (
-    <div className="app-container">
-      <Toolbar navigateTo={navigateTo} showToast={showToast} goBack={goBack} />
-      <CommandLine 
-        activeSymbol={activeSymbol} 
-        setActiveSymbol={setActiveSymbol}
-        activeView={activeView}
-        navigateTo={navigateTo}
-        goBack={goBack}
-        showToast={showToast}
-      />
-      <SummaryBar symbol={activeSymbol} activeView={activeView} />
-      <MainContent 
-        activeView={activeView}
-        activeSymbol={activeSymbol}
-        latestTrade={latestTrade}
-        setLatestTrade={setLatestTrade}
-        navigateTo={navigateTo}
-      />
-      <NewsTicker symbol={activeSymbol} />
-      <Footer activeView={activeView} navigateTo={navigateTo} />
-      {toast && <div className="toast">{toast}</div>}
-    </div>
+    <>
+      <MobileWarning />
+      <div className="app-container">
+        <Toolbar navigateTo={navigateTo} showToast={showToast} goBack={goBack} />
+        <CommandLine
+          activeSymbol={activeSymbol}
+          setActiveSymbol={setActiveSymbol}
+          activeView={activeView}
+          navigateTo={navigateTo}
+          goBack={goBack}
+          showToast={showToast}
+        />
+        <SummaryBar symbol={activeSymbol} activeView={activeView} />
+        <MainContent
+          activeView={activeView}
+          activeSymbol={activeSymbol}
+          latestTrade={latestTrade}
+          setLatestTrade={setLatestTrade}
+          navigateTo={navigateTo}
+        />
+        <NewsTicker symbol={activeSymbol} />
+        <Footer activeView={activeView} navigateTo={navigateTo} />
+        {toast && <div className="toast">{toast}</div>}
+      </div>
+    </>
   );
 }
 

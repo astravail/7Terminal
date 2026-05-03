@@ -8,9 +8,17 @@
   --color-down: #FF0000;
   --border-color: #333333;
   --panel-bg: #000000;
-  --header-bg: #000000; /* Header is black in the screenshot, only specific menus are blue */
-  --news-bg: #001133; /* Dark blue for news */
+  --header-bg: #000000;
+  --news-bg: #001133;
   --highlight-blue: #336699;
+  --btn-bg: #1a1a1a;
+  --toolbar-bg: #111111;
+  --tab-active: #003366;
+  --tab-inactive: #1a1a1a;
+  --row-hover: #0a0a2a;
+  --orange: #FF8800;
+  --pink: #FF66CC;
+  --purple: #AA88FF;
 }
 
 * {
@@ -22,16 +30,19 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-white);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1.2;
   overflow: hidden;
+  user-select: none;
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-color); border-left: 1px solid var(--border-color); }
-::-webkit-scrollbar-thumb { background: var(--border-color); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-color); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 
+/* ─── Panels ─── */
 .panel {
   background-color: var(--panel-bg);
   border: 1px solid var(--border-color);
@@ -43,67 +54,467 @@ body {
 .panel-header {
   background-color: var(--text-amber);
   color: #000;
-  padding: 2px 4px;
+  padding: 2px 6px;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 11px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
+.panel-header-dark {
+  background-color: #111;
+  color: var(--text-amber);
+  padding: 2px 6px;
+  font-weight: bold;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ─── Text colors ─── */
 .text-up { color: var(--color-up); }
 .text-down { color: var(--color-down); }
 .text-amber { color: var(--text-amber); }
 .text-cyan { color: var(--text-cyan); }
 .text-white { color: var(--text-white); }
 .text-grey { color: var(--text-grey); }
+.text-orange { color: var(--orange); }
+.text-pink { color: var(--pink); }
+.text-purple { color: var(--purple); }
 
 .clickable { cursor: pointer; }
 .clickable:hover { text-decoration: underline; }
 
-/* New Grid Layout */
+/* ─── Main Grid Layout ─── */
 .app-container {
   display: grid;
-  grid-template-columns: 280px 1fr 1fr 300px;
-  grid-template-rows: 28px 24px calc(100vh - 28px - 24px - 100px - 24px) 100px 24px;
-  gap: 2px;
+  grid-template-columns: 1fr;
+  grid-template-rows: 28px 32px 24px 1fr 110px 28px;
   height: 100vh;
-  padding: 2px;
-  background-color: var(--border-color);
+  background-color: var(--bg-color);
 }
 
-.cmd-row { grid-column: 1 / -1; grid-row: 1 / 2; background-color: var(--bg-color); display: flex; align-items: center; padding: 0 4px; }
-.summary-row { grid-column: 1 / -1; grid-row: 2 / 3; background-color: var(--bg-color); display: flex; align-items: center; padding: 0 4px; border-bottom: 1px solid var(--border-color); }
+/* ─── Toolbar (F-keys) ─── */
+.toolbar-row {
+  grid-row: 1 / 2;
+  background-color: #111;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
 
-.sidebar-left { grid-column: 1 / 2; grid-row: 3 / 4; }
-.chart-panel { grid-column: 2 / 3; grid-row: 3 / 4; }
-.map-panel { grid-column: 3 / 4; grid-row: 3 / 4; }
-.sidebar-right { grid-column: 4 / 5; grid-row: 3 / 4; }
+.toolbar-row::-webkit-scrollbar { display: none; }
 
-.news-row { grid-column: 1 / -1; grid-row: 4 / 5; background-color: var(--news-bg); overflow: hidden; display: flex; flex-direction: column; }
-.footer-row { grid-column: 1 / -1; grid-row: 5 / 6; background-color: var(--bg-color); display: flex; align-items: center; padding: 0 4px; border-top: 1px solid var(--border-color); }
+.fkey-btn {
+  background: linear-gradient(180deg, #444 0%, #222 100%);
+  color: var(--text-white);
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: fit-content;
+  transition: all 0.1s;
+}
 
-/* Autocomplete Dropdown */
+.fkey-btn:hover {
+  background: linear-gradient(180deg, #555 0%, #333 100%);
+  border-color: var(--text-amber);
+}
+
+.fkey-btn.yellow {
+  background: linear-gradient(180deg, #FFDD33 0%, #CC9900 100%);
+  color: #000;
+  border-color: #AA8800;
+}
+
+.fkey-btn.yellow:hover {
+  background: linear-gradient(180deg, #FFEE66 0%, #DDAA00 100%);
+}
+
+.fkey-btn.green {
+  background: linear-gradient(180deg, #22CC22 0%, #118811 100%);
+  color: #000;
+  border-color: #0A660A;
+}
+
+.fkey-btn.red {
+  background: linear-gradient(180deg, #CC2222 0%, #881111 100%);
+  color: #FFF;
+  border-color: #660A0A;
+}
+
+/* ─── Command Row ─── */
+.cmd-row {
+  grid-row: 2 / 3;
+  background-color: var(--bg-color);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+}
+
+/* ─── Summary Row ─── */
+.summary-row {
+  grid-row: 3 / 4;
+  background-color: var(--bg-color);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.summary-row::-webkit-scrollbar { display: none; }
+
+/* ─── Main Content Area ─── */
+.main-content {
+  grid-row: 4 / 5;
+  display: grid;
+  gap: 2px;
+  overflow: hidden;
+}
+
+/* Layout: DES view (default) */
+.main-content.layout-des {
+  grid-template-columns: 280px 1fr 1fr 300px;
+  grid-template-rows: 1fr;
+}
+
+/* Layout: TOP news */
+.main-content.layout-top {
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: 1fr;
+}
+
+/* Layout: WEI world equity */
+.main-content.layout-wei {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Layout: FA financial analysis */
+.main-content.layout-fa {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Layout: HP historical price */
+.main-content.layout-hp {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Layout: GIP intraday */
+.main-content.layout-gip {
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Layout: TLKR watchlist */
+.main-content.layout-tlkr {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* ─── News Row ─── */
+.news-row {
+  grid-row: 5 / 6;
+  background-color: var(--news-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ─── Footer Row ─── */
+.footer-row {
+  grid-row: 6 / 7;
+  background-color: #111;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-top: 1px solid var(--border-color);
+  gap: 2px;
+}
+
+/* ─── Panel positions for DES layout ─── */
+.sidebar-left { grid-column: 1 / 2; grid-row: 1 / 2; }
+.chart-panel { grid-column: 2 / 3; grid-row: 1 / 2; }
+.map-panel { grid-column: 3 / 4; grid-row: 1 / 2; }
+.sidebar-right { grid-column: 4 / 5; grid-row: 1 / 2; }
+
+/* ─── Autocomplete Dropdown ─── */
 .autocomplete-dropdown {
   position: absolute;
-  top: 28px;
-  left: 100px;
-  width: 400px;
-  background-color: #222222;
+  top: 32px;
+  left: 200px;
+  width: 420px;
+  background-color: #1a1a1a;
   border: 1px solid var(--text-amber);
   z-index: 1000;
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+  box-shadow: 2px 2px 12px rgba(0,0,0,0.9);
+  max-height: 300px;
+  overflow-y: auto;
 }
+
 .autocomplete-item {
   display: flex;
   justify-content: space-between;
   padding: 4px 8px;
   color: var(--text-white);
   cursor: pointer;
+  font-size: 12px;
 }
+
 .autocomplete-item:hover, .autocomplete-item.selected {
   background-color: var(--highlight-blue);
 }
 
-/* Map overrides */
+/* ─── Map overrides ─── */
 .leaflet-container { background: var(--bg-color) !important; font-family: inherit !important; }
 .leaflet-tile { filter: grayscale(100%) invert(100%) contrast(200%); opacity: 0.5; }
+
+/* ─── Table styles ─── */
+.bb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.bb-table th {
+  color: var(--text-cyan);
+  text-align: left;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: normal;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--bg-color);
+  z-index: 1;
+}
+
+.bb-table td {
+  padding: 2px 6px;
+  border-bottom: 1px solid #111;
+  white-space: nowrap;
+}
+
+.bb-table tr:hover {
+  background-color: var(--row-hover);
+}
+
+.bb-table td.right, .bb-table th.right {
+  text-align: right;
+}
+
+/* ─── Tabs ─── */
+.tab-bar {
+  display: flex;
+  background: #111;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.tab-item {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  color: var(--text-grey);
+  background: var(--tab-inactive);
+  border-right: 1px solid var(--border-color);
+  transition: all 0.15s;
+}
+
+.tab-item:hover {
+  color: var(--text-white);
+  background: #222;
+}
+
+.tab-item.active {
+  color: var(--text-amber);
+  background: var(--tab-active);
+  border-bottom: 2px solid var(--text-amber);
+}
+
+/* ─── Section dividers ─── */
+.section-title {
+  color: var(--text-amber);
+  font-weight: bold;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+  background: #0a0a0a;
+}
+
+/* ─── Trade ticker tape ─── */
+.ticker-tape {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: scroll-left 30s linear infinite;
+  white-space: nowrap;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ─── Status indicators ─── */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.status-dot.online { background-color: var(--color-up); box-shadow: 0 0 4px var(--color-up); }
+.status-dot.offline { background-color: var(--color-down); box-shadow: 0 0 4px var(--color-down); }
+
+/* ─── Blinking cursor ─── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* ─── Help overlay ─── */
+.help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 20, 0.92);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.help-modal {
+  width: 85%;
+  height: 85%;
+  background: #000044;
+  border: 2px solid var(--text-amber);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(255, 204, 0, 0.15);
+}
+
+.help-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--text-amber);
+  background: #000033;
+}
+
+.help-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ─── Data grid ─── */
+.data-grid {
+  display: grid;
+  gap: 1px;
+  font-size: 12px;
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 8px;
+}
+
+.data-label {
+  color: var(--text-cyan);
+}
+
+.data-value {
+  color: var(--text-white);
+  text-align: right;
+}
+
+/* ─── Progress bar ─── */
+.progress-bar {
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--text-amber);
+  transition: width 0.3s ease;
+}
+
+/* ─── Toast notification ─── */
+.toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  color: var(--text-amber);
+  border: 1px solid var(--text-amber);
+  padding: 6px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  z-index: 10000;
+  animation: toast-in 0.3s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ─── Flash animation ─── */
+@keyframes flash-green {
+  0% { background-color: rgba(0, 255, 0, 0.3); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(255, 0, 0, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.flash-up { animation: flash-green 0.4s ease-out; }
+.flash-down { animation: flash-red 0.4s ease-out; }
+
+/* ─── Responsive small text ─── */
+.mono-sm { font-size: 11px; font-family: inherit; }
+.mono-xs { font-size: 10px; font-family: inherit; }

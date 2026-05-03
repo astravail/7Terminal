@@ -1,29 +1,27 @@
 import React from 'react';
 
 const FKEYS = [
-  { key: 'F2', label: 'GOVT', color: 'yellow' },
-  { key: 'F3', label: 'CORP', color: 'yellow' },
-  { key: 'F4', label: 'MTGE', color: 'yellow' },
-  { key: 'F5', label: 'M-MKT', color: 'yellow' },
-  { key: 'F6', label: 'MUNI', color: 'yellow' },
-  { key: 'F7', label: 'PFD', color: 'yellow' },
-  { key: 'F8', label: 'EQUITY', color: 'yellow' },
-  { key: 'F9', label: 'COMDTY', color: 'yellow' },
-  { key: 'F10', label: 'INDEX', color: 'yellow' },
-  { key: 'F11', label: 'CURNCY', color: 'yellow' },
-  { key: 'F12', label: 'CLIENT', color: 'yellow' },
+  { key: 'F2',  label: 'GOVT',   view: 'TOP',  tooltip: 'Government & Macro News' },
+  { key: 'F3',  label: 'CORP',   view: 'FA',   tooltip: 'Fundamental Analysis' },
+  { key: 'F4',  label: 'MTGE',   view: 'HP',   tooltip: 'Historical Price Table' },
+  { key: 'F5',  label: 'M-MKT',  view: 'TLKR', tooltip: 'Market Watchlist' },
+  { key: 'F6',  label: 'MUNI',   view: 'WEI',  tooltip: 'Crypto Market Index' },
+  { key: 'F7',  label: 'PFD',    view: 'GIP',  tooltip: 'Intraday Price Chart' },
+  { key: 'F8',  label: 'EQUITY', view: 'DES',  tooltip: 'Security Overview' },
+  { key: 'F9',  label: 'COMDTY', view: 'HP',   tooltip: 'Historical Price Data' },
+  { key: 'F10', label: 'INDEX',  view: 'WEI',  tooltip: 'Market Index Monitor' },
+  { key: 'F11', label: 'CURNCY', view: 'TLKR', tooltip: 'Currency / Watchlist' },
+  { key: 'F12', label: 'CLIENT', view: null,   tooltip: 'Client Portal (not available)' },
 ];
 
-const ACTIONS = [
-  { label: 'MENU', color: '', action: 'MENU' },
-  { label: 'BACK', color: '', action: 'BACK' },
-  { label: 'CANCEL', color: 'red', action: 'CANCEL' },
-  { label: 'GO', color: 'green', action: 'GO' },
-];
-
-const Toolbar = ({ navigateTo, showToast }) => {
-  const handleFKey = (fkey) => {
-    showToast(`${fkey.label} sector selected — filtering by ${fkey.label}`);
+const Toolbar = ({ navigateTo, showToast, goBack }) => {
+  const handleFKey = (fk) => {
+    if (fk.view) {
+      navigateTo(fk.view);
+      showToast(`${fk.label} — ${fk.tooltip}`);
+    } else {
+      showToast(`${fk.label} — Not available in this build`);
+    }
   };
 
   return (
@@ -34,11 +32,11 @@ const Toolbar = ({ navigateTo, showToast }) => {
       </div>
 
       {FKEYS.map(fk => (
-        <button 
-          key={fk.key} 
-          className={`fkey-btn ${fk.color}`} 
+        <button
+          key={fk.key}
+          className="fkey-btn yellow"
           onClick={() => handleFKey(fk)}
-          title={`${fk.key} — ${fk.label}`}
+          title={`${fk.key} — ${fk.tooltip}`}
         >
           {fk.key} {fk.label}
         </button>
@@ -46,18 +44,10 @@ const Toolbar = ({ navigateTo, showToast }) => {
 
       <span style={{ flex: 1 }} />
 
-      {ACTIONS.map(a => (
-        <button 
-          key={a.label} 
-          className={`fkey-btn ${a.color}`}
-          onClick={() => {
-            if (a.action === 'MENU') navigateTo('DES');
-            else showToast(`${a.label} pressed`);
-          }}
-        >
-          {a.label}
-        </button>
-      ))}
+      <button className="fkey-btn" onClick={() => navigateTo('DES')} title="Return to main menu">MENU</button>
+      <button className="fkey-btn" onClick={goBack} title="Go back">BACK</button>
+      <button className="fkey-btn red" onClick={() => showToast('Input cancelled')} title="Cancel">CANCEL</button>
+      <button className="fkey-btn green" onClick={() => showToast('GO pressed — type a command and press Enter')} title="Execute">GO</button>
     </div>
   );
 };

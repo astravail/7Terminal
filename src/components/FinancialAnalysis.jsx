@@ -1,71 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const generateFinancials = (symbol) => {
-  const asset = symbol.replace('USDT', '');
-  const baseRevenue = Math.random() * 50 + 10; // billions
-  
-  const years = [2021, 2022, 2023, 2024, '2025E'];
-  
-  return {
-    asset,
-    incomeStatement: years.map((yr, i) => {
-      const rev = baseRevenue * (1 + (i * 0.15) + (Math.random() - 0.3) * 0.1);
-      const cogs = rev * (0.35 + Math.random() * 0.1);
-      const grossProfit = rev - cogs;
-      const opex = rev * (0.2 + Math.random() * 0.05);
-      const ebit = grossProfit - opex;
-      const netIncome = ebit * (0.7 + Math.random() * 0.1);
-      return {
-        year: yr,
-        revenue: rev.toFixed(2),
-        cogs: cogs.toFixed(2),
-        grossProfit: grossProfit.toFixed(2),
-        grossMargin: ((grossProfit / rev) * 100).toFixed(1),
-        opex: opex.toFixed(2),
-        ebit: ebit.toFixed(2),
-        ebitMargin: ((ebit / rev) * 100).toFixed(1),
-        netIncome: netIncome.toFixed(2),
-        netMargin: ((netIncome / rev) * 100).toFixed(1),
-        eps: (netIncome / (Math.random() * 2 + 1)).toFixed(2),
-      };
-    }),
-    balanceSheet: years.map((yr, i) => {
-      const totalAssets = baseRevenue * (2.5 + i * 0.3);
-      const cash = totalAssets * (0.1 + Math.random() * 0.1);
-      const currentAssets = totalAssets * (0.35 + Math.random() * 0.05);
-      const totalDebt = totalAssets * (0.2 + Math.random() * 0.1);
-      const equity = totalAssets - totalDebt;
-      return {
-        year: yr,
-        totalAssets: totalAssets.toFixed(2),
-        cash: cash.toFixed(2),
-        currentAssets: currentAssets.toFixed(2),
-        totalDebt: totalDebt.toFixed(2),
-        equity: equity.toFixed(2),
-        debtToEquity: (totalDebt / equity).toFixed(2),
-        roe: ((baseRevenue * 0.3 / equity) * 100).toFixed(1),
-        roa: ((baseRevenue * 0.3 / totalAssets) * 100).toFixed(1),
-      };
-    }),
-  };
+const COINGECKO_IDS = {
+  'BTCUSDT': 'bitcoin', 'ETHUSDT': 'ethereum', 'BNBUSDT': 'binancecoin',
+  'SOLUSDT': 'solana', 'XRPUSDT': 'ripple', 'ADAUSDT': 'cardano',
+  'DOGEUSDT': 'dogecoin', 'TRXUSDT': 'tron', 'LINKUSDT': 'chainlink', 'AVAXUSDT': 'avalanche-2',
 };
 
+const fmtNum = (n, dec = 2) =>
+  n != null ? Number(n).toLocaleString('en-US', { maximumFractionDigits: dec }) : '--';
+
+const fmtUSD = (n) => {
+  if (n == null) return '--';
+  if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(2)}K`;
+  return `$${n.toFixed(4)}`;
+};
+
+const fmtPct = (n) => n != null ? `${n >= 0 ? '+' : ''}${n.toFixed(2)}%` : '--';
+const clr = (n) => (n == null || n >= 0) ? 'text-up' : 'text-down';
+
+const Row = ({ label, val, label2, val2, up, up2, bold }) => (
+  <tr>
+    <td className="text-amber" style={bold ? { fontWeight: 'bold' } : {}}>{label}</td>
+    <td className={`right ${up != null ? (up ? 'text-up' : 'text-down') : 'text-white'}`}
+        style={bold ? { fontWeight: 'bold' } : {}}>{val}</td>
+    {label2 != null && <>
+      <td className="text-amber" style={bold ? { fontWeight: 'bold' } : {}}>{label2}</td>
+      <td className={`right ${up2 != null ? (up2 ? 'text-up' : 'text-down') : 'text-white'}`}
+          style={bold ? { fontWeight: 'bold' } : {}}>{val2 ?? '--'}</td>
+    </>}
+  </tr>
+);
+
 const FinancialAnalysis = ({ symbol }) => {
-  const [data] = useState(() => generateFinancials(symbol));
-  const [activeTab, setActiveTab] = useState('IS');
+  const [coinData, setCoinData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('MARKET');
+
+  const coinId = COINGECKO_IDS[symbol] || 'bitcoin';
+  const asset = symbol.replace('USDT', '');
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setCoinData(null);
+
+    fetch(
+      `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=true&sparkline=false`
+    )
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        setCoinData(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('CoinGecko rate limit reached — please wait 30s and retry');
+        setLoading(false);
+      });
+  }, [coinId]);
 
   const tabs = [
-    { id: 'IS', label: 'Income Statement' },
-    { id: 'BS', label: 'Balance Sheet' },
-    { id: 'CF', label: 'Cash Flow' },
-    { id: 'RATIOS', label: 'Key Ratios' },
+    { id: 'MARKET', label: 'Market Data' },
+    { id: 'SUPPLY', label: 'Supply & Network' },
+    { id: 'DEV', label: 'Dev & Community' },
+    { id: 'METRICS', label: 'Key Metrics' },
   ];
+
+  if (loading) return (
+    <div className="panel" style={{ overflow: 'hidden' }}>
+      <div className="panel-header"><span>FA — {asset} FINANCIAL ANALYSIS</span><span className="mono-xs">CoinGecko</span></div>
+      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-amber)' }}>LOADING MARKET DATA...</div>
+    </div>
+  );
+
+  if (error || !coinData) return (
+    <div className="panel" style={{ overflow: 'hidden' }}>
+      <div className="panel-header"><span>FA — {asset} FINANCIAL ANALYSIS</span></div>
+      <div style={{ padding: '16px', color: 'var(--text-down)', fontSize: '12px' }}>{error || 'No data available'}</div>
+    </div>
+  );
+
+  const md = coinData.market_data;
+  const dev = coinData.developer_data;
+  const comm = coinData.community_data;
 
   return (
     <div className="panel" style={{ overflow: 'hidden' }}>
       <div className="panel-header">
-        <span>FA — {data.asset} FINANCIAL ANALYSIS</span>
-        <span className="mono-xs">Annual</span>
+        <span>FA — {asset} FINANCIAL ANALYSIS</span>
+        <span className="mono-xs">CoinGecko • Live</span>
       </div>
 
       <div className="tab-bar">
@@ -78,144 +107,189 @@ const FinancialAnalysis = ({ symbol }) => {
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '4px' }}>
-        {activeTab === 'IS' && (
+
+        {activeTab === 'MARKET' && md && (
           <table className="bb-table">
             <thead>
-              <tr>
-                <th>Line Item (in $B)</th>
-                {data.incomeStatement.map(d => <th key={d.year} className="right">{d.year}</th>)}
-              </tr>
+              <tr><th>Metric</th><th className="right">Value</th><th>Metric</th><th className="right">Value</th></tr>
             </thead>
             <tbody>
-              <tr><td className="text-amber" style={{fontWeight:'bold'}}>Revenue</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-white" style={{fontWeight:'bold'}}>{d.revenue}</td>)}</tr>
-              <tr><td className="text-cyan">Cost of Goods Sold</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-down">({d.cogs})</td>)}</tr>
-              <tr style={{borderTop:'1px solid var(--border-color)'}}>
-                <td className="text-amber" style={{fontWeight:'bold'}}>Gross Profit</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-up" style={{fontWeight:'bold'}}>{d.grossProfit}</td>)}</tr>
-              <tr><td className="text-grey" style={{paddingLeft:'16px'}}>Gross Margin</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-grey">{d.grossMargin}%</td>)}</tr>
-              <tr><td className="text-cyan">Operating Expenses</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-down">({d.opex})</td>)}</tr>
-              <tr style={{borderTop:'1px solid var(--border-color)'}}>
-                <td className="text-amber" style={{fontWeight:'bold'}}>EBIT</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-up" style={{fontWeight:'bold'}}>{d.ebit}</td>)}</tr>
-              <tr><td className="text-grey" style={{paddingLeft:'16px'}}>EBIT Margin</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-grey">{d.ebitMargin}%</td>)}</tr>
-              <tr style={{borderTop:'2px solid var(--text-amber)'}}>
-                <td className="text-amber" style={{fontWeight:'bold', fontSize:'13px'}}>Net Income</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-up" style={{fontWeight:'bold', fontSize:'13px'}}>{d.netIncome}</td>)}</tr>
-              <tr><td className="text-grey" style={{paddingLeft:'16px'}}>Net Margin</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-grey">{d.netMargin}%</td>)}</tr>
-              <tr><td className="text-cyan">EPS (Diluted)</td>
-                {data.incomeStatement.map(d => <td key={d.year} className="right text-white">${d.eps}</td>)}</tr>
+              <Row bold label="Current Price (USD)" val={fmtUSD(md.current_price?.usd)}
+                   label2="Market Cap (USD)" val2={fmtUSD(md.market_cap?.usd)} />
+              <Row label="24h High" val={fmtUSD(md.high_24h?.usd)} up={true}
+                   label2="Market Cap Rank" val2={`#${md.market_cap_rank}`} />
+              <Row label="24h Low" val={fmtUSD(md.low_24h?.usd)} up={false}
+                   label2="Total Volume 24h" val2={fmtUSD(md.total_volume?.usd)} />
+              <tr style={{ borderTop: '1px solid var(--border-color)' }}>
+                <td className="text-amber">24h Change</td>
+                <td className={`right ${clr(md.price_change_percentage_24h)}`}>{fmtPct(md.price_change_percentage_24h)}</td>
+                <td className="text-amber">7d Change</td>
+                <td className={`right ${clr(md.price_change_percentage_7d)}`}>{fmtPct(md.price_change_percentage_7d)}</td>
+              </tr>
+              <tr>
+                <td className="text-amber">30d Change</td>
+                <td className={`right ${clr(md.price_change_percentage_30d)}`}>{fmtPct(md.price_change_percentage_30d)}</td>
+                <td className="text-amber">1y Change</td>
+                <td className={`right ${clr(md.price_change_percentage_1y)}`}>{fmtPct(md.price_change_percentage_1y)}</td>
+              </tr>
+              <tr style={{ borderTop: '2px solid var(--text-amber)' }}>
+                <td className="text-amber" style={{ fontWeight: 'bold' }}>All-Time High</td>
+                <td className="right text-up" style={{ fontWeight: 'bold' }}>{fmtUSD(md.ath?.usd)}</td>
+                <td className="text-amber" style={{ fontWeight: 'bold' }}>ATH Change</td>
+                <td className={`right ${clr(md.ath_change_percentage?.usd)}`} style={{ fontWeight: 'bold' }}>
+                  {fmtPct(md.ath_change_percentage?.usd)}
+                </td>
+              </tr>
+              <Row label="ATH Date"
+                   val={md.ath_date?.usd ? new Date(md.ath_date.usd).toLocaleDateString('en-GB') : '--'}
+                   label2="All-Time Low" val2={fmtUSD(md.atl?.usd)} up2={false} />
+              <tr>
+                <td className="text-amber">Vol / Mkt Cap</td>
+                <td className="right text-grey">
+                  {md.total_volume?.usd && md.market_cap?.usd
+                    ? ((md.total_volume.usd / md.market_cap.usd) * 100).toFixed(2) + '%'
+                    : '--'}
+                </td>
+                <td className="text-amber">Fully Diluted Val.</td>
+                <td className="right text-white">{fmtUSD(md.fully_diluted_valuation?.usd)}</td>
+              </tr>
             </tbody>
           </table>
         )}
 
-        {activeTab === 'BS' && (
+        {activeTab === 'SUPPLY' && md && (
           <table className="bb-table">
             <thead>
-              <tr>
-                <th>Line Item (in $B)</th>
-                {data.balanceSheet.map(d => <th key={d.year} className="right">{d.year}</th>)}
-              </tr>
+              <tr><th>Metric</th><th className="right">Value</th><th>Metric</th><th className="right">Value</th></tr>
             </thead>
             <tbody>
-              <tr><td className="text-amber" style={{fontWeight:'bold'}}>Total Assets</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right text-white" style={{fontWeight:'bold'}}>{d.totalAssets}</td>)}</tr>
-              <tr><td className="text-cyan" style={{paddingLeft:'16px'}}>Cash & Equivalents</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right text-up">{d.cash}</td>)}</tr>
-              <tr><td className="text-cyan" style={{paddingLeft:'16px'}}>Current Assets</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right">{d.currentAssets}</td>)}</tr>
-              <tr style={{borderTop:'1px solid var(--border-color)'}}>
-                <td className="text-amber" style={{fontWeight:'bold'}}>Total Debt</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right text-down">{d.totalDebt}</td>)}</tr>
-              <tr style={{borderTop:'2px solid var(--text-amber)'}}>
-                <td className="text-amber" style={{fontWeight:'bold', fontSize:'13px'}}>Shareholders' Equity</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right text-up" style={{fontWeight:'bold'}}>{d.equity}</td>)}</tr>
-              <tr><td className="text-grey" style={{paddingLeft:'16px'}}>Debt/Equity</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right text-grey">{d.debtToEquity}x</td>)}</tr>
-              <tr><td className="text-cyan">Return on Equity</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right">{d.roe}%</td>)}</tr>
-              <tr><td className="text-cyan">Return on Assets</td>
-                {data.balanceSheet.map(d => <td key={d.year} className="right">{d.roa}%</td>)}</tr>
+              <Row bold label="Circulating Supply"
+                   val={`${fmtNum(md.circulating_supply, 0)} ${asset}`}
+                   label2="Max Supply"
+                   val2={md.max_supply ? `${fmtNum(md.max_supply, 0)} ${asset}` : 'Unlimited'} />
+              <Row label="Total Supply"
+                   val={`${fmtNum(md.total_supply, 0)} ${asset}`}
+                   label2="% of Max Circulating"
+                   val2={md.max_supply && md.circulating_supply
+                     ? ((md.circulating_supply / md.max_supply) * 100).toFixed(1) + '%'
+                     : '--'} />
+              <tr style={{ borderTop: '1px solid var(--border-color)' }}>
+                <td className="text-amber" style={{ fontWeight: 'bold' }}>Market Cap</td>
+                <td className="right text-white" style={{ fontWeight: 'bold' }}>{fmtUSD(md.market_cap?.usd)}</td>
+                <td className="text-amber" style={{ fontWeight: 'bold' }}>Fully Diluted Val.</td>
+                <td className="right text-white" style={{ fontWeight: 'bold' }}>{fmtUSD(md.fully_diluted_valuation?.usd)}</td>
+              </tr>
+              <tr>
+                <td className="text-amber">FDV / Mkt Cap</td>
+                <td className="right text-grey">
+                  {md.fully_diluted_valuation?.usd && md.market_cap?.usd
+                    ? (md.fully_diluted_valuation.usd / md.market_cap.usd).toFixed(2) + 'x'
+                    : '--'}
+                </td>
+                <td className="text-amber">Current Price</td>
+                <td className="right">{fmtUSD(md.current_price?.usd)}</td>
+              </tr>
+              <tr style={{ borderTop: '2px solid var(--text-amber)' }}>
+                <td className="text-amber" style={{ fontWeight: 'bold' }} colSpan={2}>ASSET DETAILS</td>
+                <td colSpan={2} />
+              </tr>
+              <tr>
+                <td className="text-amber">Hashing Algorithm</td>
+                <td className="right text-grey">{coinData.hashing_algorithm || 'N/A'}</td>
+                <td className="text-amber">Genesis Date</td>
+                <td className="right text-grey">{coinData.genesis_date || '--'}</td>
+              </tr>
+              <tr>
+                <td className="text-amber">Categories</td>
+                <td className="right text-grey" colSpan={3}>
+                  {coinData.categories?.slice(0, 3).join(', ') || '--'}
+                </td>
+              </tr>
             </tbody>
           </table>
         )}
 
-        {activeTab === 'CF' && (
-          <div style={{ padding: '16px' }}>
-            <table className="bb-table">
-              <thead>
-                <tr>
-                  <th>Cash Flow Item (in $B)</th>
-                  {data.incomeStatement.map(d => <th key={d.year} className="right">{d.year}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td className="text-amber" style={{fontWeight:'bold'}}>Operating Cash Flow</td>
-                  {data.incomeStatement.map(d => <td key={d.year} className="right text-up">{(parseFloat(d.netIncome) * 1.2).toFixed(2)}</td>)}</tr>
-                <tr><td className="text-cyan">Capital Expenditures</td>
-                  {data.incomeStatement.map(d => <td key={d.year} className="right text-down">({(parseFloat(d.revenue) * 0.08).toFixed(2)})</td>)}</tr>
-                <tr style={{borderTop:'1px solid var(--border-color)'}}>
-                  <td className="text-amber" style={{fontWeight:'bold'}}>Free Cash Flow</td>
-                  {data.incomeStatement.map(d => <td key={d.year} className="right text-up" style={{fontWeight:'bold'}}>{(parseFloat(d.netIncome) * 1.2 - parseFloat(d.revenue) * 0.08).toFixed(2)}</td>)}</tr>
-                <tr><td className="text-cyan">Dividends Paid</td>
-                  {data.incomeStatement.map(d => <td key={d.year} className="right text-down">({(parseFloat(d.netIncome) * 0.3).toFixed(2)})</td>)}</tr>
-                <tr><td className="text-cyan">Share Buybacks</td>
-                  {data.incomeStatement.map(d => <td key={d.year} className="right text-down">({(parseFloat(d.netIncome) * 0.15).toFixed(2)})</td>)}</tr>
-              </tbody>
-            </table>
-          </div>
+        {activeTab === 'DEV' && (
+          <table className="bb-table">
+            <thead>
+              <tr><th>Metric</th><th className="right">Value</th><th>Metric</th><th className="right">Value</th></tr>
+            </thead>
+            <tbody>
+              {dev ? (
+                <>
+                  <tr>
+                    <td className="text-amber" style={{ fontWeight: 'bold' }} colSpan={4}>DEVELOPER ACTIVITY (GitHub)</td>
+                  </tr>
+                  <Row label="Stars" val={fmtNum(dev.stars, 0)} label2="Forks" val2={fmtNum(dev.forks, 0)} />
+                  <Row label="Open Issues" val={fmtNum(dev.total_issues, 0)}
+                       label2="Closed Issues" val2={fmtNum(dev.closed_issues, 0)} />
+                  <Row label="PRs Merged" val={fmtNum(dev.pull_requests_merged, 0)} up={true}
+                       label2="PR Contributors" val2={fmtNum(dev.pull_request_contributors, 0)} />
+                  <Row label="Commits (4w)" val={fmtNum(dev.commit_count_4_weeks, 0)} up={true}
+                       label2="Subscribers" val2={fmtNum(dev.subscribers, 0)} />
+                </>
+              ) : (
+                <tr><td colSpan={4} style={{ padding: '12px', color: 'var(--text-grey)' }}>No developer data available</td></tr>
+              )}
+              {comm ? (
+                <>
+                  <tr style={{ borderTop: '2px solid var(--text-amber)' }}>
+                    <td className="text-amber" style={{ fontWeight: 'bold' }} colSpan={4}>COMMUNITY METRICS</td>
+                  </tr>
+                  <Row label="Twitter Followers" val={fmtNum(comm.twitter_followers, 0)}
+                       label2="Reddit Subscribers" val2={fmtNum(comm.reddit_subscribers, 0)} />
+                  <Row label="Reddit Active 48h" val={fmtNum(comm.reddit_active_accounts_48h, 0)}
+                       label2="Telegram Members" val2={fmtNum(comm.telegram_channel_user_count, 0)} />
+                  <Row label="Reddit Posts 48h avg" val={comm.reddit_average_posts_48h?.toFixed(1) ?? '--'}
+                       label2="Reddit Comments 48h avg" val2={comm.reddit_average_comments_48h?.toFixed(1) ?? '--'} />
+                </>
+              ) : null}
+            </tbody>
+          </table>
         )}
 
-        {activeTab === 'RATIOS' && (
-          <div style={{ padding: '8px' }}>
-            <div className="section-title">VALUATION RATIOS</div>
+        {activeTab === 'METRICS' && md && (
+          <div style={{ padding: '4px' }}>
+            <div className="section-title">PRICE PERFORMANCE</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '8px' }}>
               {[
-                { label: 'P/E Ratio', value: (15 + Math.random() * 20).toFixed(1) + 'x' },
-                { label: 'Forward P/E', value: (12 + Math.random() * 15).toFixed(1) + 'x' },
-                { label: 'P/B Ratio', value: (2 + Math.random() * 5).toFixed(1) + 'x' },
-                { label: 'P/S Ratio', value: (3 + Math.random() * 8).toFixed(1) + 'x' },
-                { label: 'EV/EBITDA', value: (10 + Math.random() * 10).toFixed(1) + 'x' },
-                { label: 'EV/Revenue', value: (4 + Math.random() * 8).toFixed(1) + 'x' },
-                { label: 'Dividend Yield', value: (Math.random() * 3).toFixed(2) + '%' },
-                { label: 'Payout Ratio', value: (20 + Math.random() * 40).toFixed(0) + '%' },
+                { label: '24h Change', v: md.price_change_percentage_24h },
+                { label: '7d Change', v: md.price_change_percentage_7d },
+                { label: '14d Change', v: md.price_change_percentage_14d },
+                { label: '30d Change', v: md.price_change_percentage_30d },
+                { label: '60d Change', v: md.price_change_percentage_60d },
+                { label: '200d Change', v: md.price_change_percentage_200d },
+                { label: '1y Change', v: md.price_change_percentage_1y },
+                { label: 'ATH Change', v: md.ath_change_percentage?.usd },
               ].map(r => (
                 <div key={r.label} className="data-row">
                   <span className="data-label">{r.label}</span>
-                  <span className="data-value">{r.value}</span>
+                  <span className={`data-value ${clr(r.v)}`}>{fmtPct(r.v)}</span>
                 </div>
               ))}
             </div>
 
-            <div className="section-title" style={{ marginTop: '8px' }}>PROFITABILITY</div>
+            <div className="section-title" style={{ marginTop: '8px' }}>MARKET METRICS</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '8px' }}>
               {[
-                { label: 'Gross Margin', value: (50 + Math.random() * 20).toFixed(1) + '%' },
-                { label: 'Operating Margin', value: (20 + Math.random() * 20).toFixed(1) + '%' },
-                { label: 'Net Margin', value: (10 + Math.random() * 20).toFixed(1) + '%' },
-                { label: 'ROE', value: (15 + Math.random() * 20).toFixed(1) + '%' },
-                { label: 'ROA', value: (5 + Math.random() * 10).toFixed(1) + '%' },
-                { label: 'ROIC', value: (10 + Math.random() * 15).toFixed(1) + '%' },
-              ].map(r => (
-                <div key={r.label} className="data-row">
-                  <span className="data-label">{r.label}</span>
-                  <span className="data-value">{r.value}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="section-title" style={{ marginTop: '8px' }}>LEVERAGE & LIQUIDITY</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '8px' }}>
-              {[
-                { label: 'Current Ratio', value: (1 + Math.random() * 2).toFixed(2) + 'x' },
-                { label: 'Quick Ratio', value: (0.5 + Math.random() * 1.5).toFixed(2) + 'x' },
-                { label: 'Debt/Equity', value: (0.2 + Math.random() * 0.8).toFixed(2) + 'x' },
-                { label: 'Interest Coverage', value: (5 + Math.random() * 15).toFixed(1) + 'x' },
+                { label: 'Market Cap Rank', value: `#${md.market_cap_rank}` },
+                { label: 'Market Cap', value: fmtUSD(md.market_cap?.usd) },
+                { label: 'All-Time High', value: fmtUSD(md.ath?.usd) },
+                { label: 'ATH Date', value: md.ath_date?.usd ? new Date(md.ath_date.usd).toLocaleDateString('en-GB') : '--' },
+                { label: 'All-Time Low', value: fmtUSD(md.atl?.usd) },
+                { label: 'ATL Date', value: md.atl_date?.usd ? new Date(md.atl_date.usd).toLocaleDateString('en-GB') : '--' },
+                {
+                  label: 'Vol / Mkt Cap',
+                  value: md.total_volume?.usd && md.market_cap?.usd
+                    ? ((md.total_volume.usd / md.market_cap.usd) * 100).toFixed(2) + '%'
+                    : '--',
+                },
+                {
+                  label: 'FDV / Mkt Cap',
+                  value: md.fully_diluted_valuation?.usd && md.market_cap?.usd
+                    ? (md.fully_diluted_valuation.usd / md.market_cap.usd).toFixed(2) + 'x'
+                    : '--',
+                },
               ].map(r => (
                 <div key={r.label} className="data-row">
                   <span className="data-label">{r.label}</span>

@@ -34,7 +34,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <Toolbar navigateTo={navigateTo} showToast={showToast} />
+      <Toolbar navigateTo={navigateTo} showToast={showToast} goBack={goBack} />
       <CommandLine 
         activeSymbol={activeSymbol} 
         setActiveSymbol={setActiveSymbol}
